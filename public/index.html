@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NestJS AI Agent</title>
+    <style>
+      :root {
+        --bg: #f3f5f7;
+        --card: #ffffff;
+        --text: #1c2430;
+        --sub: #607086;
+        --primary: #0b5fad;
+        --line: #d9e2ec;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
+        color: var(--text);
+        background: radial-gradient(circle at top left, #d9e7f7 0%, var(--bg) 55%);
+      }
+      .wrap {
+        max-width: 880px;
+        margin: 32px auto;
+        padding: 0 16px;
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 8px 28px rgba(12, 37, 68, 0.08);
+      }
+      h1 {
+        margin: 0 0 10px;
+        font-size: 28px;
+      }
+      .sub {
+        margin: 0 0 20px;
+        color: var(--sub);
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      @media (max-width: 720px) {
+        .grid { grid-template-columns: 1fr; }
+      }
+      label {
+        display: block;
+        font-size: 13px;
+        margin-bottom: 6px;
+        color: #344556;
+      }
+      input, select, textarea, button {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        font-size: 14px;
+        padding: 10px 12px;
+      }
+      textarea {
+        min-height: 110px;
+        resize: vertical;
+      }
+      button {
+        margin-top: 12px;
+        cursor: pointer;
+        border: none;
+        color: #fff;
+        font-weight: 600;
+        background: linear-gradient(90deg, #0b5fad 0%, #1374c7 100%);
+      }
+      .result {
+        margin-top: 18px;
+        border-top: 1px solid var(--line);
+        padding-top: 14px;
+      }
+      pre {
+        margin: 0;
+        padding: 12px;
+        border-radius: 10px;
+        background: #f7fafc;
+        border: 1px solid var(--line);
+        white-space: pre-wrap;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="card">
+        <h1>NestJS AI Agent</h1>
+        <p class="sub">문서 기반 RAG 챗봇 · LangChain + LangGraph + LLM Router</p>
+
+        <div class="grid">
+          <div>
+            <label for="sessionId">Session ID</label>
+            <input id="sessionId" value="user-001" />
+          </div>
+          <div>
+            <label for="model">Model (optional)</label>
+            <select id="model">
+              <option value="">환경변수 기본값 사용</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="margin-top: 10px">
+          <label for="question">질문</label>
+          <textarea id="question" placeholder="예: AI Agent 시장 규모는 어떻게 되나요?"></textarea>
+        </div>
+
+        <button id="askBtn">질문 보내기</button>
+
+        <div class="result">
+          <p><strong>응답</strong></p>
+          <pre id="output">아직 응답이 없습니다.</pre>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const modelSelect = document.getElementById('model');
+      const askBtn = document.getElementById('askBtn');
+      const output = document.getElementById('output');
+
+      async function loadModels() {
+        try {
+          const res = await fetch('/api/llm/models');
+          const data = await res.json();
+          for (const model of data.supportedModels || []) {
+            const option = document.createElement('option');
+            option.value = model;
+            option.textContent = model;
+            modelSelect.appendChild(option);
+          }
+        } catch (err) {
+          console.error(err);
+        }
+      }
+
+      askBtn.addEventListener('click', async () => {
+        const question = document.getElementById('question').value.trim();
+        const sessionId = document.getElementById('sessionId').value.trim();
+        const model = modelSelect.value;
+
+        if (!question || !sessionId) {
+          output.textContent = 'question과 sessionId를 입력해주세요.';
+          return;
+        }
+
+        output.textContent = '질문 처리 중...';
+
+        try {
+          const payload = { question, sessionId };
+          if (model) payload.model = model;
+
+          const res = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+
+          const data = await res.json();
+          if (!res.ok) {
+            output.textContent = JSON.stringify(data, null, 2);
+            return;
+          }
+
+          output.textContent = [
+            `modelUsed: ${data.modelUsed}`,
+            '',
+            data.answer,
+            '',
+            `references: ${(data.references || []).join(', ')}`,
+          ].join('\n');
+        } catch (err) {
+          output.textContent = String(err);
+        }
+      });
+
+      loadModels();
+    </script>
+  </body>
+</html>
