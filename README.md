@@ -42,6 +42,41 @@
 - `GET /api/llm/models`
 - `GET /health`
 
+### API 문서
+
+- Swagger UI: `GET /api/docs`
+- Docker(권장): `http://localhost/api/docs`
+- 로컬 단독 실행: `http://localhost:3000/api/docs`
+
+### 공통 에러 응답 포맷
+
+모든 애플리케이션 레벨 에러는 아래 구조로 통일됩니다.
+
+```json
+{
+  "statusCode": 400,
+  "code": "BAD_REQUEST",
+  "message": "question must be a string",
+  "path": "/api/chat",
+  "requestId": "8f3f6df9-9f50-40e7-aa69-09f8ba4f80de",
+  "timestamp": "2026-03-20T09:00:00.000Z",
+  "details": {
+    "validationErrors": [
+      "question must be a string"
+    ]
+  }
+}
+```
+
+에러 코드 매핑 규칙:
+
+- `400 -> BAD_REQUEST`
+- `404 -> NOT_FOUND`
+- `500 -> INTERNAL_SERVER_ERROR`
+- `413 -> PAYLOAD_TOO_LARGE` (Nginx 레이어)
+- `502 -> BAD_GATEWAY` (Nginx 레이어)
+- `504 -> GATEWAY_TIMEOUT` (Nginx 레이어)
+
 ## 4) 실행 방법
 
 ### A. 로컬 실행 (개발)
@@ -89,6 +124,7 @@ npm run start:dev
 
 - UI: `http://localhost:3000`
 - Health: `http://localhost:3000/health`
+- Swagger: `http://localhost:3000/api/docs`
 
 ### B. Docker 실행 (권장)
 
@@ -117,6 +153,7 @@ docker compose up --build -d
 - UI: `http://localhost`
 - API: `http://localhost/api/chat`
 - Health: `http://localhost/health`
+- Swagger: `http://localhost/api/docs`
 
 ## 5) 필수 점검 시나리오
 
