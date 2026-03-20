@@ -1,17 +1,23 @@
-import { Body, Controller, Get, HttpException, HttpStatus, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import {
+  ApiExtraModels,
   ApiBadRequestResponse,
   ApiBody,
+  ApiInternalServerErrorResponse,
+  ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiParam,
   ApiTags,
+  getSchemaPath,
 } from '@nestjs/swagger';
+import { ErrorResponseDto } from '../common/dto/error-response.dto';
 import { ChatDto } from './dto/chat.dto';
 import { ChatHistoryResponseDto } from './dto/chat-history-response.dto';
 import { ChatResponseDto } from './dto/chat-response.dto';
 import { ChatService } from './chat.service';
 
+@ApiExtraModels(ErrorResponseDto)
 @ApiTags('chat')
 @Controller('chat')
 export class ChatController {
@@ -28,11 +34,37 @@ export class ChatController {
     type: ChatResponseDto,
   })
   @ApiBadRequestResponse({
-    description: '입력값 검증 실패 또는 채팅 처리 오류',
-    schema: {
-      example: {
-        message: '채팅 처리 중 오류가 발생했습니다.',
-        detail: 'OPENAI_API_KEY is required',
+    description: '입력값 검증 실패',
+    content: {
+      'application/json': {
+        schema: { $ref: getSchemaPath(ErrorResponseDto) },
+        example: {
+          statusCode: 400,
+          code: 'BAD_REQUEST',
+          message: 'question must be a string',
+          path: '/api/chat',
+          requestId: '8f3f6df9-9f50-40e7-aa69-09f8ba4f80de',
+          timestamp: '2026-03-20T09:00:00.000Z',
+          details: {
+            validationErrors: ['question must be a string'],
+          },
+        },
+      },
+    },
+  })
+  @ApiInternalServerErrorResponse({
+    description: '채팅 처리 중 서버 내부 오류',
+    content: {
+      'application/json': {
+        schema: { $ref: getSchemaPath(ErrorResponseDto) },
+        example: {
+          statusCode: 500,
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Internal server error',
+          path: '/api/chat',
+          requestId: '4aebfc77-6fdb-4f26-bf21-a32da7c08df2',
+          timestamp: '2026-03-20T09:00:00.000Z',
+        },
       },
     },
   })
@@ -40,17 +72,7 @@ export class ChatController {
   async chat(
     @Body() body: ChatDto,
   ): Promise<ChatResponseDto> {
-    try {
-      return await this.chatService.chat(body);
-    } catch (error) {
-      throw new HttpException(
-        {
-          message: '채팅 처리 중 오류가 발생했습니다.',
-          detail: error instanceof Error ? error.message : 'unknown error',
-        },
-        HttpStatus.BAD_REQUEST,
-      );
-    }
+    return this.chatService.chat(body);
   }
 
   @ApiOperation({
@@ -65,6 +87,38 @@ export class ChatController {
   @ApiOkResponse({
     description: '히스토리 조회 성공',
     type: ChatHistoryResponseDto,
+  })
+  @ApiNotFoundResponse({
+    description: '세션 히스토리를 찾을 수 없음',
+    content: {
+      'application/json': {
+        schema: { $ref: getSchemaPath(ErrorResponseDto) },
+        example: {
+          statusCode: 404,
+          code: 'NOT_FOUND',
+          message: 'Session not found',
+          path: '/api/chat/history/user-001',
+          requestId: '55d9bde5-55b9-4549-a9f0-76795d27d9be',
+          timestamp: '2026-03-20T09:00:00.000Z',
+        },
+      },
+    },
+  })
+  @ApiInternalServerErrorResponse({
+    description: '히스토리 조회 중 서버 내부 오류',
+    content: {
+      'application/json': {
+        schema: { $ref: getSchemaPath(ErrorResponseDto) },
+        example: {
+          statusCode: 500,
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Internal server error',
+          path: '/api/chat/history/user-001',
+          requestId: '70e2ecbe-7dad-4ea6-b43b-248b7adca8a5',
+          timestamp: '2026-03-20T09:00:00.000Z',
+        },
+      },
+    },
   })
   @Get('history/:id')
   history(@Param('id') id: string): ChatHistoryResponseDto {

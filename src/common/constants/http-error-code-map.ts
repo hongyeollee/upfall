@@ -1,0 +1,8 @@
+export const HTTP_ERROR_CODE_MAP: Record<number, string> = {
+  400: 'BAD_REQUEST',
+  404: 'NOT_FOUND',
+  413: 'PAYLOAD_TOO_LARGE',
+  500: 'INTERNAL_SERVER_ERROR',
+  502: 'BAD_GATEWAY',
+  504: 'GATEWAY_TIMEOUT',
+};
